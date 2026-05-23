@@ -4,9 +4,25 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
-from ultralytics import YOLO
+import torch
 
-from config import CLASS_NAMES, PERSON_GROUP_CLASS_IDS
+# Compatibility shim: PyTorch >= 2.6 defaults torch.load(weights_only=True),
+# which refuses to deserialize ultralytics' DetectionModel pickle without an
+# explicit safe-globals allowlist. We trust our own local weight file, so
+# force weights_only=False at load time.
+_original_torch_load = torch.load
+
+
+def _patched_torch_load(*args, **kwargs):
+    kwargs.setdefault("weights_only", False)
+    return _original_torch_load(*args, **kwargs)
+
+
+torch.load = _patched_torch_load
+
+from ultralytics import YOLO  # noqa: E402
+
+from config import CLASS_NAMES, PERSON_GROUP_CLASS_IDS  # noqa: E402
 
 
 Bbox = tuple[int, int, int, int]
