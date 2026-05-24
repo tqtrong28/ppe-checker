@@ -476,6 +476,22 @@ Vì class imbalance trong SH17 huấn luyện, model output confidence khác nha
 
 App cho user 2 slider riêng để fine-tune.
 
+#### Ví dụ minh họa hiệu ứng threshold
+
+Cùng 1 ảnh công trường thực tế (5 công nhân, 2 người đội nón cối), thay đổi PPE confidence threshold:
+
+**Mặc định (PPE conf = 0.30):** xem [ảnh demo](#demo) ở đầu README — chỉ phát hiện **1 helmet** (Person #2). 22 total detections.
+
+**Sau khi hạ ngưỡng (PPE conf = 0.10):**
+
+![Threshold Tuning Effect](docs/images/demo-threshold-tuning.png)
+
+- Phát hiện được **2 helmets** (Person #2 và #3) — đúng với thực tế trong ảnh
+- Tổng detections tăng từ 22 → **32** (model bắt thêm các bbox conf thấp)
+- Đồng thời bật cả Body checkbox → cả 5 người đều thiếu safety-vest → 0 compliant / 5 violations
+
+Bài học: với class hiếm trong dataset (helmet 1.2%, vest 0.7%), threshold 0.30 mặc định có thể bỏ sót object thật. **User phải tự tune theo từng ảnh** — đây chính là lý do app expose 2 slider riêng thay vì hard-code 1 ngưỡng chung. Đây cũng là minh họa cho tác động của **class imbalance** mà paper SH17 ghi nhận trong Bảng IV (per-class mAP) nhưng không đề xuất giải pháp inference cụ thể.
+
 ---
 
 ## Dataset & Model
