@@ -9,3 +9,6 @@ venv/
 .vscode/
 weights/*.pt
 *.egg-info/
+
+# Paper PDF — download from arXiv: https://arxiv.org/abs/2407.04590
+paper.pdf
