@@ -260,7 +260,10 @@ Kết quả mong đợi: **14 passed** (5 tests cho `containment_ratio` + 9 test
 
 ## Cách sử dụng
 
-![UI Sidebar](docs/images/ui-sidebar.png)
+Toàn bộ UI gói gọn trong **1 trang Streamlit** — xem [ảnh demo](#demo) ở đầu README. Cấu trúc:
+
+- **Sidebar (cột trái)**: Detection Settings + Required PPE + About + Upload widget
+- **Main panel (cột phải)**: Title + Metric row + Annotated image + Compliance table
 
 ### Sidebar — Bảng điều khiển
 
@@ -278,11 +281,11 @@ Kết quả mong đợi: **14 passed** (5 tests cho `containment_ratio` + 9 test
 
 ### Main panel — Kết quả
 
-![Compliance Table](docs/images/compliance-table.png)
-
-- **Metric row**: Tổng số người / số compliant / số vi phạm
+- **Banner** (nếu có): Hiển thị khi ảnh upload bị resize cho inference (vd. `Image was resized for inference: 4608x3072 → 4096x2730`)
+- **Metric row** (3 ô): `Total persons` / `Compliant` / `Violations`
 - **Ảnh annotated**: Bounding box vẽ với màu phân biệt
-- **Bảng compliance**: Mỗi dòng = 1 người. Cột = nhóm PPE bắt buộc. Giá trị `OK (helmet)` hoặc `MISSING`. Cột cuối: `Compliant` hoặc `Violation`.
+- **Bảng compliance**: Mỗi dòng = 1 người (`#1`, `#2`...). Cột tương ứng nhóm PPE bắt buộc đã chọn ở sidebar. Giá trị `OK (helmet)` hoặc `MISSING`. Cột cuối: `Compliant` hoặc `Violation`.
+- **Caption dưới ảnh**: Tổng số detections (vd. `22 total detections`)
 
 ### Quy ước màu bounding box
 
