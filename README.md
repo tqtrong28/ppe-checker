@@ -27,18 +27,19 @@
 ## Mục lục
 
 1. [Tổng quan](#tổng-quan)
-2. [Tính năng](#tính-năng)
-3. [Công nghệ sử dụng](#công-nghệ-sử-dụng)
-4. [Cài đặt](#cài-đặt)
-5. [Cách sử dụng](#cách-sử-dụng)
-6. [Kiến trúc hệ thống](#kiến-trúc-hệ-thống)
-7. [Phương pháp](#phương-pháp)
-8. [Dataset & Model](#dataset--model)
-9. [Kết quả](#kết-quả)
-10. [Hạn chế](#hạn-chế)
-11. [Hướng phát triển](#hướng-phát-triển)
-12. [Tài liệu tham khảo](#tài-liệu-tham-khảo)
-13. [License](#license)
+2. [Đóng góp — Từ paper gốc đến project](#đóng-góp--từ-paper-gốc-đến-project)
+3. [Tính năng](#tính-năng)
+4. [Công nghệ sử dụng](#công-nghệ-sử-dụng)
+5. [Cài đặt](#cài-đặt)
+6. [Cách sử dụng](#cách-sử-dụng)
+7. [Kiến trúc hệ thống](#kiến-trúc-hệ-thống)
+8. [Phương pháp](#phương-pháp)
+9. [Dataset & Model](#dataset--model)
+10. [Kết quả](#kết-quả)
+11. [Hạn chế](#hạn-chế)
+12. [Hướng phát triển](#hướng-phát-triển)
+13. [Tài liệu tham khảo](#tài-liệu-tham-khảo)
+14. [License](#license)
 
 ---
 
@@ -62,6 +63,117 @@ Project này xây dựng **hệ thống tự động phát hiện vi phạm PPE*
 - Đồ án môn học **Computer Vision / Trí tuệ Nhân tạo / Hệ thống Nhúng**
 - Demo nghiên cứu về workplace safety automation
 - Khởi đầu cho production system (cần thêm fine-tuning + integration camera CCTV)
+
+---
+
+## Đóng góp — Từ paper gốc đến project
+
+### Paper gốc giải quyết bài toán gì
+
+Paper **SH17: A Dataset for Human Safety and PPE Detection in Manufacturing Industry** (Ahmad & Rahimi, 2024) đóng góp 3 thứ chính:
+
+1. **Dataset**: 8,099 ảnh thu thập từ Pexels, annotate 75,994 instances thuộc 17 classes
+2. **Benchmark**: Train + đánh giá 16 model variants (YOLOv8/v9/v10) trên dataset này, công bố pre-trained weights
+3. **Cross-domain validation**: Đánh giá khả năng generalize của model tốt nhất (YOLOv9-e) trên Pictor-PPE dataset
+
+→ Paper dừng ở task **PPE detection thuần** — phát hiện vị trí và nhãn của object PPE trong ảnh.
+
+### Khoảng trống còn lại (Gap)
+
+Detection chỉ cho biết "trong ảnh có những object gì". Câu hỏi quan trọng cho **workplace safety** thực tế là:
+
+> *"Người nào không tuân thủ quy định PPE, và thiếu cái gì?"*
+
+Để trả lời câu hỏi này từ raw detections, cần thêm các tầng logic mà paper gốc **không đề cập**:
+
+- Làm sao biết helmet thuộc về ai trong ảnh có nhiều người?
+- Làm sao phân biệt "đang đeo helmet" và "helmet để trên bàn"?
+- Định nghĩa "compliant" cụ thể như thế nào — cần những PPE gì?
+- Làm sao giải quyết class imbalance khiến model bỏ sót class PPE hiếm?
+- Làm sao biến model nghiên cứu thành ứng dụng người dùng cuối có thể dùng?
+
+### Chúng tôi mở rộng những gì
+
+Project này xây **5 tầng mới chồng lên trên pre-trained weights của paper**:
+
+#### 1. Spatial Association Algorithm (gán PPE cho đúng người)
+
+Paper không có thuật toán gán PPE cho Person. Chúng tôi đề xuất **Containment Ratio**:
+
+```
+containment_ratio(inner, outer) = area(intersection) / area(inner)
+```
+
+PPE được gán cho Person nếu bbox PPE có **≥ 70% diện tích nằm trong** bbox Person. Không dùng IoU (đối xứng) vì PPE nhỏ trong Person lớn sẽ có IoU rất thấp (~1.6% cho helmet trong person).
+
+**Hệ quả phụ:** Helmet trên kệ (ngoài Person bbox) → containment = 0 → không được gán → hệ thống tự nhận diện là "không có ai đeo helmet này" mà không cần model phân biệt "worn vs present".
+
+#### 2. Compliance Rule System (định nghĩa thế nào là tuân thủ)
+
+Paper liệt kê 17 classes rời rạc. Chúng tôi định nghĩa **4 nhóm bắt buộc theo body region** dựa trên hướng dẫn OSHA mà paper Section I có đề cập nhưng không cụ thể hóa:
+
+| Group | PPE thay thế (logic OR) |
+|---|---|
+| `HEAD` | helmet |
+| `BODY` | safety-vest HOẶC safety-suit HOẶC medical-suit |
+| `HAND` | gloves |
+| `FOOT` | shoes |
+
+Người dùng tự chọn nhóm nào bắt buộc qua checkbox → linh hoạt theo từng môi trường (công trường vs y tế vs sản xuất).
+
+#### 3. Dual Confidence Threshold (xử lý class imbalance)
+
+Class imbalance trong SH17 (Fig. 2 của paper) khiến model dự đoán confidence không đồng đều giữa class:
+- Class phổ biến (person 18.2%, head 15.8%) → confidence cao, threshold 0.5 OK
+- Class PPE hiếm (helmet 1.2%, vest 0.7%, face-guard 0.2%) → confidence thấp, threshold 0.5 sẽ filter mất
+
+Paper báo cáo mAP nhưng không đề xuất giải pháp inference. Chúng tôi tách **2 slider riêng** cho user fine-tune từng nhóm.
+
+#### 4. End-to-End Web Application (đóng gói thành sản phẩm)
+
+Paper publish weights + paper. Người dùng phải tự code mới chạy được. Project này biến thành **Streamlit web app**:
+
+- Upload ảnh qua browser → kết quả trực quan sau ~200ms (CPU)
+- Sidebar config với sliders + checkboxes + About expander
+- Annotated image với 4 màu phân biệt + bảng compliance per-person + metric row
+- Error handling cho 6 edge cases (file sai format, ảnh quá lớn, không có person, weights thiếu, ...)
+- Reproducible setup: `pip install -r requirements.txt` + `streamlit run app.py`
+
+#### 5. Software Engineering Quality
+
+Paper là academic code (chạy được là OK). Project này tuân theo good engineering practices:
+
+- **Modular architecture** (4 module): `config.py` / `compliance.py` (pure logic) / `detector.py` / `app.py` — separation of concerns
+- **Unit tests**: 14 test cases cover containment math + compliance edge cases (orphan PPE, multi-person, partial containment, no required groups, ...)
+- **Compatibility fix**: phát hiện `ultralytics==8.0.38` (pin của paper) KHÔNG load được weights dưới PyTorch 2.6+ do default `weights_only=True` + module path đổi. Đã fix bằng monkey-patch + version bump
+- **Vietnamese documentation**: README đầy đủ cho audience Việt Nam
+
+### Bảng so sánh nhanh
+
+| Khía cạnh | Paper SH17 (gốc) | Project này |
+|---|---|---|
+| **Task** | PPE detection | PPE detection + **Compliance check** |
+| **Person ↔ PPE attribution** | Không có | **Spatial Containment 70%** |
+| **Định nghĩa "compliance"** | Không có | **4 body-region groups + OR-logic** |
+| **Confidence handling** | 1 ngưỡng chung | **Dual threshold** |
+| **Output** | Bounding boxes | Boxes + **bảng vi phạm per-person + metrics** |
+| **UI** | Không có (chỉ command-line predict) | **Streamlit web app interactive** |
+| **Error handling** | Không có | 6 edge cases |
+| **Testing** | Không có | **14 unit tests** |
+| **PyTorch compat** | Pin cũ (broken trên 2.6+) | **Đã fix** |
+| **Ngôn ngữ docs** | English | Tiếng Việt |
+| **Đối tượng cuối** | Researcher | **End user (safety inspector)** |
+
+### Phạm vi đóng góp (trung thực)
+
+Project là **engineering contribution / applied research**, không phải fundamental ML research. Cụ thể:
+
+- **KHÔNG** train model mới — re-use pre-trained weights paper công bố
+- **KHÔNG** collect ảnh hay annotation mới
+- **KHÔNG** đề xuất kiến trúc neural network mới
+- **KHÔNG** cải thiện mAP — số liệu detection y hệt paper
+
+Đóng góp nằm ở **tầng ứng dụng** phía trên model: spatial reasoning, rule definition, UX, software engineering. Đây là phần mà paper bỏ trống — và là phần quyết định liệu kết quả nghiên cứu có **dùng được trong thực tế** hay không.
 
 ---
 
