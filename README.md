@@ -38,7 +38,7 @@
 10. [Hạn chế](#hạn-chế)
 11. [Hướng phát triển](#hướng-phát-triển)
 12. [Tài liệu tham khảo](#tài-liệu-tham-khảo)
-13. [Tác giả & License](#tác-giả--license)
+13. [License](#license)
 
 ---
 
@@ -554,17 +554,7 @@ Xem `samples/sample_01.jpg` đến `sample_03.jpg`. Chạy `streamlit run app.py
 
 ---
 
-## Tác giả & License
-
-### Tác giả
-
-- **Họ tên**: [Tên sinh viên]
-- **Lớp**: [Lớp]
-- **Môn học**: [Tên môn học]
-- **Năm học**: 2025-2026
-- **Trường**: [Tên trường]
-
-### License
+## License
 
 Project này là **academic / research demo**, sử dụng pre-trained weights từ dataset SH17 (license **CC BY-NC-SA 4.0** — Attribution-NonCommercial-ShareAlike 4.0 International).
 
@@ -578,7 +568,7 @@ Project này là **academic / research demo**, sử dụng pre-trained weights t
 - Bán hoặc thu phí truy cập
 - Bỏ thông tin attribution gốc
 
-### Acknowledgements
+## Acknowledgements
 
 - **SH17 Dataset**: Hafiz Mughees Ahmad & Afshin Rahimi (University of Windsor, Canada)
 - **YOLO Framework**: Ultralytics
